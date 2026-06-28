@@ -6,43 +6,52 @@
 //
 
 import SwiftUI
-import RealityKit
-import RealityKitContent
 
 struct ContentView: View {
 
-    @State var enlarge = false
+    @State private var sistemaSolarOpen = false
+
+    @Environment(\.openImmersiveSpace) private var openImmersiveSpace
+    @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
 
     var body: some View {
-        VStack {
-            RealityView { content in
-                // Add the initial RealityKit content
-                if let scene = try? await Entity(named: "Scene", in: realityKitContentBundle) {
-                    content.add(scene)
-                }
-            } update: { content in
-                // Update the RealityKit content when SwiftUI state changes
-                if let scene = content.entities.first {
-                    let uniformScale: Float = enlarge ? 1.4 : 1.0
-                    scene.transform.scale = [uniformScale, uniformScale, uniformScale]
-                }
-            }
-            .gesture(TapGesture().targetedToAnyEntity().onEnded { _ in
-                enlarge.toggle()
-            })
+        VStack(spacing: 24) {
+            Text("Meu Sistema Solar")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundStyle(.yellow)
 
-            VStack {
-                Button {
-                    enlarge.toggle()
-                } label: {
-                    Text(enlarge ? "Reduce RealityView Content" : "Enlarge RealityView Content")
+            Text(sistemaSolarOpen
+                 ? "Olhe ao redor — os planetas estão orbitando você!"
+                 : "Toque no botão para mergulhar no sistema solar.")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                Task {
+                    if sistemaSolarOpen {
+                        await dismissImmersiveSpace()
+                        sistemaSolarOpen = false
+                    } else {
+                        switch await openImmersiveSpace(id: "Sistema Solar") {
+                        case .opened:
+                            sistemaSolarOpen = true
+                        case .error, .userCancelled:
+                            sistemaSolarOpen = false
+                        @unknown default:
+                            sistemaSolarOpen = false
+                        }
+                    }
                 }
-                .animation(.none, value: 0)
-                .fontWeight(.semibold)
+            } label: {
+                Text(sistemaSolarOpen ? "Fechar Sistema Solar" : "Abrir Sistema Solar")
+                    .font(.title2)
+                    .padding(.horizontal)
             }
-            .padding()
-            .glassBackgroundEffect()
+            .fontWeight(.semibold)
         }
+        .padding(40)
     }
 }
 
